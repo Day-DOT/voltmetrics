@@ -1,9 +1,11 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    # Esto le dice al servidor que busque el index.php de la raíz
+    
+    # Esto soluciona el error "No input file specified"
     RewriteRule ^$ index.php [L]
     
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [L]
+    # La clave es el punto de interrogación después de index.php
+    RewriteRule ^ index.php? [L]
 </IfModule>
