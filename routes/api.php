@@ -20,7 +20,7 @@ Route::get('/voltmetrics-full-data', function () {
         $usuarios = Usuario::all();
         $ultimaMedicion = Medicion::latest()->first();
         
-        // Conteo de nodos (dispositivos) distintos
+        // Conteo de dispositivos distintos
         $totalNodos = Medicion::distinct('dispositivo_medicion_id')->count();
         
         // Historial de las últimas 10 mediciones
@@ -34,14 +34,14 @@ Route::get('/voltmetrics-full-data', function () {
                 'global_stats' => [
                     'total_nodes' => $totalNodos,
                     'last_reading' => $ultimaMedicion->valor ?? 0, 
-                    'last_update' => $ultimaMedicion->created_at ?? now(),
+                    'last_update' => $ultimaMedicion ? $ultimaMedicion->created_at->toDateTimeString() : null,
                     'history' => $historial
                 ]
             ]
         ], 200);
 
     } catch (\Exception $e) {
-        // Si hay un error (ej. base de datos no conectada), esto te dirá qué pasa
+        // Retorno de error detallado para debug en PandoraXDN
         return response()->json([
             'status' => 'error',
             'message' => 'Error en el servidor de PandoraXDN',
@@ -53,17 +53,18 @@ Route::get('/voltmetrics-full-data', function () {
 // 2. RUTA DE LOGIN: Para autenticación desde la App Móvil
 Route::post('/login-api', [MedicionController::class, 'login']);
 
-// 3. RUTA SIMPLE: Solo usuarios (por si la principal pesa mucho)
+// 3. RUTA SIMPLE: Solo lista de usuarios
 Route::get('/datos-movil', function () {
     return response()->json(Usuario::all(), 200);
 });
 
-// 4. MANTENIMIENTO: Limpiar rutas desde la URL si algo se queda trabado
+// 4. MANTENIMIENTO: Forzar limpieza de rutas y cache desde el navegador
 Route::get('/clear-api', function() {
     Artisan::call('route:clear');
     Artisan::call('cache:clear');
+    Artisan::call('config:clear');
     return response()->json([
         'status' => 'ok',
-        'message' => 'API y Rutas refrescadas correctamente'
+        'message' => 'API, Rutas y Configuración refrescadas correctamente'
     ]);
 });
