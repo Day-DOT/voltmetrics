@@ -4,7 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MedicionController;
 use App\Models\Medicion;
-use App\Models\Usuario; // Asegúrate de que el modelo en app/Models sea Usuario.php
+use App\Models\Usuario; 
+use Illuminate\Support\Facades\Artisan; // <-- Agregado para mantenimiento
 
 /*
 |--------------------------------------------------------------------------
@@ -12,33 +13,35 @@ use App\Models\Usuario; // Asegúrate de que el modelo en app/Models sea Usuario
 |--------------------------------------------------------------------------
 */
 
-// --- RUTAS EXISTENTES (Panel Web / Admin) ---
-Route::post('/login', [MedicionController::class, 'login']);
-Route::get('/usuarios', [MedicionController::class, 'adminDashboard']);
-Route::delete('/usuario/{id}', [MedicionController::class, 'destroy']);
-
-// --- RUTA MAESTRA PARA LA APP MÓVIL (Todo en uno) ---
-// Esta es la que usaremos en el fetch de React Native
+// RUTA MAESTRA (La que usa tu App de React Native)
 Route::get('/voltmetrics-full-data', function () {
     try {
+        // Obtenemos los datos de la base de datos de la UTVT
+        $usuarios = Usuario::all();
+        $ultimaMedicion = Medicion::latest()->first();
+        
         return response()->json([
-            'usuarios' => Usuario::all(), // Trae todos los de tus seeders
+            'usuarios' => $usuarios,
             'global_stats' => [
-                'total_nodes' => Medicion::distinct('dispositivo_medicion_id')->count(), // Ajustado al nombre de tu tabla
-                'last_reading' => Medicion::latest()->first()->valor ?? 0, // Ajustado a 'valor' si así se llama en tu migración
-                'history' => Medicion::latest()->take(10)->get()->reverse()->values() // Datos para la gráfica
+                'total_nodes' => Medicion::distinct('dispositivo_medicion_id')->count(),
+                'last_reading' => $ultimaMedicion->valor ?? 0, 
+                'history' => Medicion::latest()->take(10)->get()->reverse()->values()
             ]
-        ]);
+        ], 200);
     } catch (\Exception $e) {
+        // Si algo falla en el servidor, esto te dirá qué fue
         return response()->json(['error' => $e->getMessage()], 500);
     }
 });
 
-// Mantengo estas por si las usas por separado, pero la de arriba es la mejor
-Route::get('/energia-movil', function () {
-    return Medicion::latest()->take(10)->get()->reverse()->values();
-});
-
+// --- RUTAS DE RESPALDO/ADMIN ---
+Route::post('/login-api', [MedicionController::class, 'login']); // Cambié el nombre para no chocar con la web
 Route::get('/datos-movil', function () {
     return response()->json(Usuario::all()); 
+});
+
+// --- RUTA EXTRA: Por si necesitas limpiar la API sin entrar a la Web ---
+Route::get('/clear-api', function() {
+    Artisan::call('route:clear');
+    return response()->json(['message' => 'API Refrescada']);
 });
