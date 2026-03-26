@@ -29,3 +29,11 @@ Route::get('/limpiar-todo', function() {
     Artisan::call('view:clear');
     return "✅ Rutas de la API actualizadas en PandoraXDN";
 });
+Route::get('/debug-git', function() {
+    // Esto intenta forzar una actualización (si el servidor lo permite)
+    return [
+        'Carpeta Actual' => getcwd(),
+        '¿Existe API.php?' => file_exists(base_path('routes/api.php')),
+        'Ultima Modificacion API' => date("Y-m-d H:i:s", filemtime(base_path('routes/api.php')))
+    ];
+});
